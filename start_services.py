@@ -64,13 +64,10 @@ def start_supabase():
         "docker", "compose", "-p", "localai", "-f", "supabase/docker/docker-compose.yml", "up", "-d"
     ])
 
-def start_local_ai(profile=None):
+def start_local_ai():
     """Start the local AI services (using its compose file)."""
     print("Starting local AI services...")
-    cmd = ["docker", "compose", "-p", "localai"]
-    if profile and profile != "none":
-        cmd.extend(["--profile", profile])
-    cmd.extend(["-f", "docker-compose.yml", "up", "-d"])
+    cmd = ["docker", "compose", "-p", "localai", "-f", "docker-compose.yml", "up", "-d"]
     run_command(cmd)
 
 def generate_searxng_secret_key():
@@ -213,11 +210,35 @@ def check_and_fix_docker_compose_for_searxng():
     except Exception as e:
         print(f"Error checking/modifying docker-compose.yml for SearXNG: {e}")
 
+def check_ollama_connection():
+    """Check if Ollama is accessible on the host machine."""
+    print("Checking Ollama connection on host machine...")
+    try:
+        response = subprocess.run(
+            ["curl", "-s", "http://localhost:11434/api/version"],
+            capture_output=True, text=True, check=False
+        )
+        if response.returncode == 0 and response.stdout:
+            print("Successfully connected to Ollama on host machine.")
+            return True
+        else:
+            print("Warning: Could not connect to Ollama on host machine.")
+            print("Make sure Ollama is running on localhost:11434")
+            print("You might need to run: 'ollama serve' on your host machine")
+            return False
+    except Exception as e:
+        print(f"Error checking Ollama connection: {e}")
+        return False
+
 def main():
     parser = argparse.ArgumentParser(description='Start the local AI and Supabase services.')
-    parser.add_argument('--profile', choices=['cpu', 'gpu-nvidia', 'gpu-amd', 'none'], default='cpu',
-                      help='Profile to use for Docker Compose (default: cpu)')
+    parser.add_argument('--check-ollama', action='store_true', 
+                      help='Check if Ollama is accessible on the host machine')
     args = parser.parse_args()
+
+    if args.check_ollama:
+        check_ollama_connection()
+        return
 
     clone_supabase_repo()
     prepare_supabase_env()
@@ -225,6 +246,9 @@ def main():
     # Generate SearXNG secret key and check docker-compose.yml
     generate_searxng_secret_key()
     check_and_fix_docker_compose_for_searxng()
+    
+    # Check Ollama connection
+    check_ollama_connection()
     
     stop_existing_containers()
     
@@ -236,7 +260,7 @@ def main():
     time.sleep(10)
     
     # Then start the local AI services
-    start_local_ai(args.profile)
+    start_local_ai()
 
 if __name__ == "__main__":
     main()
