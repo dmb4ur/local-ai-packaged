@@ -1,12 +1,10 @@
 {
-    # Global options - works for both environments
-    email {$LETSENCRYPT_EMAIL}
+    # Global options without Let's Encrypt email
+    auto_https off  # Disable automatic HTTPS since we're behind a reverse proxy
 }
 
 # N8N
 {$N8N_HOSTNAME} {
-    # For domains, Caddy will automatically use Let's Encrypt
-    # For localhost/port addresses, HTTPS won't be enabled
     reverse_proxy localhost:5678
 }
 
@@ -20,9 +18,9 @@
     reverse_proxy localhost:3001
 }
 
-# Ollama API
+# Ollama API (pointing to host machine's Ollama instead of container)
 {$OLLAMA_HOSTNAME} {
-    reverse_proxy localhost:11434
+    reverse_proxy host.docker.internal:11434
 }
 
 # Supabase
@@ -57,8 +55,6 @@
         Permissions-Policy "accelerometer=(),camera=(),geolocation=(),gyroscope=(),magnetometer=(),microphone=(),payment=(),usb=()"
         # Set referrer policy
         Referrer-Policy "no-referrer"
-        # Force clients to use HTTPS
-        Strict-Transport-Security "max-age=31536000"
         # Prevent MIME type sniffing from the declared Content-Type
         X-Content-Type-Options "nosniff"
         # X-Robots-Tag (comment to allow site indexing)
